@@ -1,6 +1,6 @@
 {
   "name": "nexra-vision",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Game recorder for Nexra - AI-powered League of Legends analysis",
   "main": "src/main.js",
   "scripts": {

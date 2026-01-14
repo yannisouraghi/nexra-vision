@@ -161,7 +161,7 @@ async function sendHeartbeat() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         puuid: userConfig.puuid,
-        version: '1.0.3',
+        version: '1.0.4',
       }),
     });
 
@@ -1337,42 +1337,9 @@ async function uploadToApi(matchId, videoBuffer, realMatchData) {
 
     console.log(`Uploaded ${uploadedClips.length}/${extractedClips.length} clips`);
 
-    // 4. Create analysis record (in pending status)
-    console.log('Creating analysis record...');
-    const analysisResponse = await fetch(`${API_URL}/analysis`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        matchId: finalMatchId,
-        puuid,
-        region,
-        matchData: matchDataPayload,
-        hasVideoClips: uploadedClips.length > 0,
-        clipCount: uploadedClips.length,
-        timelineEvents: timelineData?.events || [],
-      }),
-    });
-
-    const analysisData = await analysisResponse.json();
-    if (analysisData.success && analysisData.data?.id) {
-      const analysisId = analysisData.data.id;
-      console.log(`Analysis created with ID: ${analysisId}, starting processing...`);
-
-      // 5. Start the analysis processing
-      const startResponse = await fetch(`${API_URL}/analysis/${analysisId}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      const startData = await startResponse.json();
-      if (startData.success) {
-        console.log('AI Analysis started successfully');
-      } else {
-        console.error('Analysis start failed:', startData.error);
-      }
-    } else {
-      console.error('Analysis creation failed:', analysisData.error);
-    }
+    // Recording uploaded successfully - analysis will be started manually by user from dashboard
+    console.log('Recording uploaded successfully. User can start analysis from dashboard.');
+    showNotification('Recording Ready', 'Go to dashboard to start AI analysis');
 
     // Cleanup temp files after a delay
     setTimeout(() => {
