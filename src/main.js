@@ -1448,6 +1448,13 @@ app.whenReady().then(async () => {
     app.dock.hide();
   }
 
+  // Enable auto-start on Windows boot
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    path: app.getPath('exe'),
+    args: ['--hidden']
+  });
+
   loadUserConfig();
 
   if (!userConfig.puuid) {
