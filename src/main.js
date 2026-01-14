@@ -18,6 +18,7 @@ const GAME_PROCESS_NAME = 'League of Legends.exe';
 const CHECK_INTERVAL = 3000;
 const LINK_SERVER_PORT = 45678; // Local server for account linking from dashboard
 const MIN_GAME_DURATION = 900; // 15 minutes in seconds - skip remakes
+const HEARTBEAT_INTERVAL = 20000; // Send heartbeat every 20 seconds
 
 let userConfig = {
   puuid: null,
@@ -43,6 +44,7 @@ let settingsWindow = null;
 let tray = null;
 let isRecording = false;
 let gameDetectionInterval = null;
+let heartbeatInterval = null;
 let currentMatchId = null;
 let gameStartTime = null;
 let gameWasRunning = false;
@@ -144,6 +146,50 @@ async function fetchProfileIconId() {
     }
   } catch (e) {
     console.log('Could not fetch profile icon:', e.message);
+  }
+}
+
+// Send heartbeat to API so dashboard knows Vision is running
+async function sendHeartbeat() {
+  if (!userConfig.puuid) {
+    return; // No account linked, skip heartbeat
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/vision/heartbeat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        puuid: userConfig.puuid,
+        version: '1.0.3',
+      }),
+    });
+
+    if (response.ok) {
+      console.log('Heartbeat sent');
+    }
+  } catch (e) {
+    // Silently fail - heartbeat is not critical
+    console.log('Heartbeat failed (network error)');
+  }
+}
+
+// Start heartbeat interval
+function startHeartbeat() {
+  // Send immediately on start
+  sendHeartbeat();
+
+  // Then send every HEARTBEAT_INTERVAL ms
+  heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+  console.log('Heartbeat started (every', HEARTBEAT_INTERVAL / 1000, 's)');
+}
+
+// Stop heartbeat interval
+function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+    console.log('Heartbeat stopped');
   }
 }
 
@@ -1474,6 +1520,7 @@ app.whenReady().then(async () => {
   createTray();
   startGameDetection();
   startLinkServer();
+  startHeartbeat();
 
   // Show settings window on startup
   createSettingsWindow();
@@ -1485,6 +1532,7 @@ app.whenReady().then(async () => {
 
 app.on('will-quit', () => {
   if (gameDetectionInterval) clearInterval(gameDetectionInterval);
+  stopHeartbeat();
   stopLinkServer();
 });
 
