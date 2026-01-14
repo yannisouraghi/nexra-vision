@@ -13,7 +13,7 @@ ffmpeg.setFfprobePath(ffprobeStatic.path);
 
 // Config
 const API_URL = 'https://nexra-api.nexra-api.workers.dev';
-const NEXRA_WEB_URL = 'http://localhost:3000';
+const NEXRA_WEB_URL = 'https://nexra-jet.vercel.app';
 const GAME_PROCESS_NAME = 'League of Legends.exe';
 const CHECK_INTERVAL = 3000;
 const LINK_SERVER_PORT = 45678; // Local server for account linking from dashboard
