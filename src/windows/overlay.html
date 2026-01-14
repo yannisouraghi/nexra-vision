@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nexra Vision</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+
+    .overlay {
+      background: rgba(10, 10, 15, 0.98);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      border-radius: 14px;
+      padding: 18px 22px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.1);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00d4ff, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+    }
+
+    .logo svg {
+      width: 20px;
+      height: 20px;
+      color: white;
+    }
+
+    .title-section h1 {
+      font-size: 16px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .title-section p {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .message {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .message strong {
+      color: #00d4ff;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      -webkit-app-region: no-drag;
+    }
+
+    button {
+      flex: 1;
+      padding: 11px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-record {
+      background: linear-gradient(135deg, #00d4ff, #6366f1);
+      color: white;
+      box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+    }
+
+    .btn-record:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-skip {
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-skip:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px #22c55e; }
+      50% { opacity: 0.6; box-shadow: 0 0 12px #22c55e; }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="header">
+      <div class="logo">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <div class="title-section">
+        <h1>Nexra Vision</h1>
+        <p><span class="status-dot"></span> Game detected</p>
+      </div>
+    </div>
+
+    <p class="message">
+      Record this game for <strong>AI analysis</strong>?
+    </p>
+
+    <div class="buttons">
+      <button class="btn-skip" onclick="decline()">Skip</button>
+      <button class="btn-record" onclick="accept()">Record</button>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    function accept() {
+      ipcRenderer.send('accept-recording');
+    }
+
+    function decline() {
+      ipcRenderer.send('decline-recording');
+    }
+
+    // Auto-decline after 12 seconds
+    let countdown = 12;
+    const skipBtn = document.querySelector('.btn-skip');
+
+    const interval = setInterval(() => {
+      countdown--;
+      if (countdown <= 8) {
+        skipBtn.textContent = `Skip (${countdown})`;
+      }
+      if (countdown <= 0) {
+        clearInterval(interval);
+        decline();
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

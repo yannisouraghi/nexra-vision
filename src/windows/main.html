@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexra Vision - Recorder</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0a0e13 0%, #1a1025 100%);
+      color: white;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #a855f7, #ec4899);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    #status {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .status-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .status-value {
+      font-size: 14px;
+      color: #a855f7;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00ff88;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .info {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+    </div>
+    <div>
+      <h1>Nexra Vision</h1>
+      <div class="subtitle">Game Recorder</div>
+    </div>
+  </div>
+
+  <div id="status">
+    <div class="status-label">Status</div>
+    <div class="status-value">
+      <span class="dot"></span>
+      <span id="status-text">Waiting for game...</span>
+    </div>
+  </div>
+
+  <p class="info">
+    This window can be minimized. Nexra Vision will automatically detect when League of Legends starts and ask if you want to record.
+  </p>
+
+  <script>
+    const { ipcRenderer, desktopCapturer } = require('electron');
+
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let currentMatchId = null;
+
+    // Listen for start recording
+    ipcRenderer.on('start-recording', async (event, { sourceId, matchId }) => {
+      try {
+        currentMatchId = matchId;
+        document.getElementById('status-text').textContent = 'Recording in progress...';
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop',
+              chromeMediaSourceId: sourceId,
+              minWidth: 1920,
+              maxWidth: 1920,
+              minHeight: 1080,
+              maxHeight: 1080,
+              minFrameRate: 30,
+              maxFrameRate: 30
+            }
+          }
+        });
+
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'video/webm;codecs=vp9',
+          videoBitsPerSecond: 5000000 // 5 Mbps
+        });
+
+        recordedChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const buffer = await blob.arrayBuffer();
+
+          ipcRenderer.send('recording-data', {
+            buffer: buffer,
+            matchId: currentMatchId
+          });
+
+          document.getElementById('status-text').textContent = 'Recording saved!';
+
+          // Stop all tracks
+          stream.getTracks().forEach(track => track.stop());
+        };
+
+        mediaRecorder.start(1000); // Capture in 1 second chunks
+
+        console.log('Recording started');
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+        document.getElementById('status-text').textContent = `Error: ${error.message}`;
+      }
+    });
+
+    // Listen for stop recording
+    ipcRenderer.on('stop-recording', () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        console.log('Recording stopped');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nexra Vision</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d0d12;
+      color: white;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(0, 0, 0, 0.3);
+      -webkit-app-region: drag;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .titlebar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      object-fit: contain;
+    }
+
+    .title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #00d4ff;
+    }
+
+    .close-btn {
+      -webkit-app-region: no-drag;
+      width: 26px;
+      height: 26px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      color: rgba(255, 255, 255, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 59, 48, 0.8);
+      color: white;
+    }
+
+    .content {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      height: calc(100vh - 57px);
+    }
+
+    .left-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .account-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .account-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d4ff 0%, #6366f1 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .account-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .account-avatar.not-linked {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .account-info { flex: 1; min-width: 0; }
+
+    .account-name {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 1px;
+    }
+
+    .account-tag {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .status-badge.connected {
+      background: rgba(34, 197, 94, 0.15);
+      color: #22c55e;
+    }
+
+    .status-badge.waiting {
+      background: rgba(107, 114, 128, 0.15);
+      color: #6b7280;
+    }
+
+    .status-badge.recording {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .settings-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .setting-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 22px;
+      transition: 0.3s;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    .toggle input:checked + .toggle-slider {
+      background: #00d4ff;
+    }
+
+    .toggle input:checked + .toggle-slider:before {
+      transform: translateX(18px);
+    }
+
+    .quality-section {
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .quality-label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 8px;
+    }
+
+    .quality-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .quality-btn {
+      flex: 1;
+      padding: 8px 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .quality-btn:hover {
+      border-color: rgba(0, 212, 255, 0.3);
+    }
+
+    .quality-btn.selected {
+      border-color: #00d4ff;
+      background: rgba(0, 212, 255, 0.1);
+    }
+
+    .quality-btn input { display: none; }
+
+    .quality-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .quality-btn.selected .quality-name { color: #00d4ff; }
+
+    .quality-desc {
+      font-size: 9px;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 2px;
+    }
+
+    .right-section {
+      width: 160px;
+      display: flex;
+      flex-direction: column;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 10px;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .recordings-count {
+      font-size: 9px;
+      color: #00d4ff;
+      padding: 2px 5px;
+      background: rgba(0, 212, 255, 0.1);
+      border-radius: 6px;
+    }
+
+    .recordings-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .recording-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      margin-bottom: 4px;
+    }
+
+    .recording-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      background: rgba(0, 212, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #00d4ff;
+      flex-shrink: 0;
+    }
+
+    .recording-info { flex: 1; min-width: 0; }
+
+    .recording-name {
+      font-size: 10px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .recording-date {
+      font-size: 8px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .no-recordings {
+      text-align: center;
+      padding: 16px 8px;
+      color: rgba(255, 255, 255, 0.3);
+      font-size: 11px;
+    }
+
+    .clear-btn {
+      margin-top: auto;
+      padding: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .clear-btn:hover {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .info-text {
+      font-size: 9px;
+      color: rgba(255, 255, 255, 0.3);
+      text-align: center;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <div class="titlebar-left">
+      <img class="logo" src="../../assets/nexra-vision-logo.png" alt="Nexra" onerror="this.style.display='none'">
+      <span class="title">Nexra Vision</span>
+    </div>
+    <button class="close-btn" onclick="window.close()">
+      <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="content">
+    <div class="left-section">
+      <div class="account-card">
+        <div class="account-avatar" id="accountAvatar">?</div>
+        <div class="account-info">
+          <div class="account-name" id="accountName">Not connected</div>
+          <div class="account-tag" id="accountTag">Link account on dashboard</div>
+        </div>
+        <span class="status-badge" id="statusBadge">Offline</span>
+      </div>
+
+      <div class="settings-section">
+        <div class="setting-row">
+          <span class="setting-label">Auto-record</span>
+          <label class="toggle">
+            <input type="checkbox" id="autoRecordToggle" onchange="toggleAutoRecord()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="quality-section">
+          <div class="quality-label">Video quality</div>
+          <div class="quality-row">
+            <label class="quality-btn" id="quality-low">
+              <input type="radio" name="quality" value="low" onchange="setQuality('low')">
+              <div class="quality-name">Eco</div>
+              <div class="quality-desc">480p 15fps</div>
+            </label>
+            <label class="quality-btn selected" id="quality-medium">
+              <input type="radio" name="quality" value="medium" checked onchange="setQuality('medium')">
+              <div class="quality-name">Normal</div>
+              <div class="quality-desc">480p 20fps</div>
+            </label>
+            <label class="quality-btn" id="quality-high">
+              <input type="radio" name="quality" value="high" onchange="setQuality('high')">
+              <div class="quality-name">HD</div>
+              <div class="quality-desc">720p 30fps</div>
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="info-text">Only the last 3 games are stored locally</div>
+    </div>
+
+    <div class="right-section">
+      <div class="section-title">
+        Recordings
+        <span class="recordings-count" id="recordingsCount">0</span>
+      </div>
+      <div class="recordings-list" id="recordingsList">
+        <div class="no-recordings">No recordings</div>
+      </div>
+      <button class="clear-btn" onclick="clearRecordings()">Clear all</button>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    ipcRenderer.send('get-app-state');
+
+    ipcRenderer.on('app-state', (event, state) => updateUI(state));
+    ipcRenderer.on('state-update', (event, state) => updateUI(state));
+
+    function updateUI(state) {
+      const statusBadge = document.getElementById('statusBadge');
+
+      statusBadge.className = 'status-badge';
+
+      if (state.isRecording) {
+        statusBadge.classList.add('recording');
+        statusBadge.textContent = 'Recording';
+      } else if (state.account && state.account.puuid) {
+        statusBadge.classList.add('connected');
+        statusBadge.textContent = state.gameDetected ? 'In game' : 'Connected';
+      } else {
+        statusBadge.classList.add('waiting');
+        statusBadge.textContent = 'Offline';
+      }
+
+      const avatar = document.getElementById('accountAvatar');
+      const name = document.getElementById('accountName');
+      const tag = document.getElementById('accountTag');
+
+      if (state.account && state.account.gameName) {
+        avatar.classList.remove('not-linked');
+        name.textContent = state.account.gameName;
+        tag.textContent = `#${state.account.tagLine} - ${state.account.region}`;
+
+        if (state.account.profileIconId) {
+          avatar.innerHTML = `<img src="https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${state.account.profileIconId}.png" alt="Profile">`;
+        } else {
+          avatar.textContent = state.account.gameName[0].toUpperCase();
+        }
+      } else {
+        avatar.innerHTML = '?';
+        avatar.classList.add('not-linked');
+        name.textContent = 'Not connected';
+        tag.textContent = 'Link account on dashboard';
+      }
+
+      document.getElementById('autoRecordToggle').checked = state.autoRecord !== false;
+
+      const quality = state.quality || 'medium';
+      document.querySelectorAll('.quality-btn').forEach(el => el.classList.remove('selected'));
+      document.getElementById(`quality-${quality}`).classList.add('selected');
+
+      updateRecordingsList(state.recordings || []);
+    }
+
+    function updateRecordingsList(recordings) {
+      const list = document.getElementById('recordingsList');
+      const count = document.getElementById('recordingsCount');
+
+      count.textContent = recordings.length;
+
+      if (recordings.length === 0) {
+        list.innerHTML = '<div class="no-recordings">No recordings</div>';
+        return;
+      }
+
+      list.innerHTML = recordings.slice(0, 3).map(rec => `
+        <div class="recording-item">
+          <div class="recording-icon">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <div class="recording-info">
+            <div class="recording-name">${rec.name}</div>
+            <div class="recording-date">${rec.date}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleAutoRecord() {
+      ipcRenderer.send('set-auto-record', document.getElementById('autoRecordToggle').checked);
+    }
+    function setQuality(q) {
+      document.querySelectorAll('.quality-btn').forEach(el => el.classList.remove('selected'));
+      document.getElementById(`quality-${q}`).classList.add('selected');
+      ipcRenderer.send('set-quality', q);
+    }
+    function clearRecordings() { ipcRenderer.send('clear-recordings'); }
+  </script>
+</body>
+</html>

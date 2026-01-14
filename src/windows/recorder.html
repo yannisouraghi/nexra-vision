@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Recorder</title>
+</head>
+<body>
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let currentMatchId = null;
+
+    // Optimized recording settings for minimal FPS impact + Cloudflare upload limits
+    // Target: ~90MB for 30min game to stay under 100MB Cloudflare Workers limit
+    const RECORDING_CONFIG = {
+      // 480p is enough for AI analysis and coaching review
+      width: 854,
+      height: 480,
+      // 20fps is enough for analysis, much less CPU intensive
+      frameRate: 20,
+      // 400 Kbps = ~90MB for 30 min game (under 100MB Cloudflare limit)
+      bitrate: 400000,
+      // Larger chunks = less frequent disk writes
+      chunkInterval: 5000
+    };
+
+    ipcRenderer.on('start-recording', async (event, { sourceId, matchId, quality }) => {
+      try {
+        currentMatchId = matchId;
+
+        // Use quality settings from main process, or defaults
+        const config = quality || RECORDING_CONFIG;
+
+        // Request screen capture with quality settings
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop',
+              chromeMediaSourceId: sourceId,
+              minWidth: config.width,
+              maxWidth: config.width,
+              minHeight: config.height,
+              maxHeight: config.height,
+              minFrameRate: config.frameRate,
+              maxFrameRate: config.frameRate
+            }
+          }
+        });
+
+        // Try to use VP8 first (faster encoding), fall back to VP9
+        let mimeType = 'video/webm;codecs=vp8';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'video/webm;codecs=vp9';
+        }
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'video/webm';
+        }
+
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: mimeType,
+          videoBitsPerSecond: config.bitrate
+        });
+
+        recordedChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const buffer = await blob.arrayBuffer();
+
+          ipcRenderer.send('recording-data', {
+            buffer: buffer,
+            matchId: currentMatchId
+          });
+
+          // Clean up
+          stream.getTracks().forEach(track => track.stop());
+          recordedChunks = [];
+        };
+
+        // Start with larger chunks for less CPU overhead
+        mediaRecorder.start(RECORDING_CONFIG.chunkInterval);
+        console.log(`Recording started: ${mimeType} @ ${config.width}x${config.height} ${config.frameRate}fps`);
+
+      } catch (error) {
+        console.error('Recording error:', error);
+        ipcRenderer.send('recording-error', error.message);
+      }
+    });
+
+    ipcRenderer.on('stop-recording', () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        console.log('Recording stopped');
+      }
+    });
+
+    // Handle recording pause/resume for even less impact
+    ipcRenderer.on('pause-recording', () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.pause();
+        console.log('Recording paused');
+      }
+    });
+
+    ipcRenderer.on('resume-recording', () => {
+      if (mediaRecorder && mediaRecorder.state === 'paused') {
+        mediaRecorder.resume();
+        console.log('Recording resumed');
+      }
+    });
+  </script>
+</body>
+</html>
